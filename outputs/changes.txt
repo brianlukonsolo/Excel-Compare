@@ -1,33 +1,40 @@
 Sequential Excel Diff Report
 Inputs: inputs/sample_v1.xlsx, inputs/sample_v2.xlsx, inputs/sample_v3_other_sheet.xlsx
+Columns compared: (all)
+Index column: ID
+--------------------------------------------------------------------------------
 
 ================================================================================
 Comparison 1: sample_v1.xlsx:Data  --->  sample_v2.xlsx:(first)
 --------------------------------------------------------------------------------
-ADDED (rows present in RIGHT but not LEFT)
-_index,_source,Age,Name,Score,Status
+ADDITIONS (rows present in RIGHT but not LEFT)
+ID,_source,Age,Name,Score,Status
 4,sample_v2.xlsx:Sheet1,22,Dave,88.0,new
 
-REMOVED (excluded by config)
+REMOVALS (rows present in LEFT but not RIGHT)
+ID,_source,Age,Name,Score,Status
+1,sample_v1.xlsx:Data,30,Alice,85.0,
 
-MODIFIED (rows present in both but with changed cells)
-_index,Age,Status,_old_source,_new_source,Name
-2,np.int64(25) → np.int64(26),<NA> → 'ok',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1,
-3,,<NA> → 'ok',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1,'Carol' → 'Caroline'
+MODIFIED (rows present in BOTH but with changed cells)
+_index,Age,Status,Name,_old_source,_new_source
+2,np.int64(25) → np.int64(26),<NA> → 'ok',,sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1
+3,,<NA> → 'ok','Carol' → 'Caroline',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1
 
 
 ================================================================================
 Comparison 2: sample_v2.xlsx:(first)  --->  sample_v3_other_sheet.xlsx:Other
 --------------------------------------------------------------------------------
-ADDED (rows present in RIGHT but not LEFT)
-_index,_source,Age,Name,Score,Status
+ADDITIONS (rows present in RIGHT but not LEFT)
+ID,_source,Age,Name,Score,Status
 1,sample_v3_other_sheet.xlsx:Other,30,Alice,85.0,
 
-REMOVED (excluded by config)
+REMOVALS (rows present in LEFT but not RIGHT)
+ID,_source,Age,Name,Score,Status
+4,sample_v2.xlsx:Sheet1,22,Dave,88.0,new
 
-MODIFIED (rows present in both but with changed cells)
-_index,Age,Status,_old_source,_new_source,Name
-2,np.int64(26) → np.int64(25),'ok' → <NA>,sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other,
-3,,'ok' → <NA>,sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other,'Caroline' → 'Carol'
+MODIFIED (rows present in BOTH but with changed cells)
+_index,Age,Status,Name,_old_source,_new_source
+2,np.int64(26) → np.int64(25),'ok' → <NA>,,sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other
+3,,'ok' → <NA>,'Caroline' → 'Carol',sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other
 
 

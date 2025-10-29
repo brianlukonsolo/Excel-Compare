@@ -7,15 +7,15 @@ Index column: ID
 ================================================================================
 Comparison 1: sample_v1.xlsx:Data  --->  sample_v2.xlsx:(first)
 --------------------------------------------------------------------------------
-ADDITIONS (rows present in RIGHT but not LEFT)
+#### [ ADDITIONS ] (rows present in [sample_v2.xlsx] but not [sample_v1.xlsx])
 ID,_source,Age,Name,Score,Status
 4,sample_v2.xlsx:Sheet1,22,Dave,88.0,new
 
-REMOVALS (rows present in LEFT but not RIGHT)
+#### [ REMOVALS ] (rows present in [sample_v1.xlsx] but not [sample_v2.xlsx])
 ID,_source,Age,Name,Score,Status
 1,sample_v1.xlsx:Data,30,Alice,85.0,
 
-MODIFIED (rows present in BOTH but with changed cells)
+#### [ MODIFIED ] (rows present in BOTH [sample_v1.xlsx] and [sample_v2.xlsx] but with changed cells)
 _index,Age,Status,Name,_old_source,_new_source
 2,np.int64(25) → np.int64(26),<NA> → 'ok',,sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1
 3,,<NA> → 'ok','Carol' → 'Caroline',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1
@@ -24,15 +24,15 @@ _index,Age,Status,Name,_old_source,_new_source
 ================================================================================
 Comparison 2: sample_v2.xlsx:(first)  --->  sample_v3_other_sheet.xlsx:Other
 --------------------------------------------------------------------------------
-ADDITIONS (rows present in RIGHT but not LEFT)
+#### [ ADDITIONS ] (rows present in [sample_v3_other_sheet.xlsx] but not [sample_v2.xlsx])
 ID,_source,Age,Name,Score,Status
 1,sample_v3_other_sheet.xlsx:Other,30,Alice,85.0,
 
-REMOVALS (rows present in LEFT but not RIGHT)
+#### [ REMOVALS ] (rows present in [sample_v2.xlsx] but not [sample_v3_other_sheet.xlsx])
 ID,_source,Age,Name,Score,Status
 4,sample_v2.xlsx:Sheet1,22,Dave,88.0,new
 
-MODIFIED (rows present in BOTH but with changed cells)
+#### [ MODIFIED ] (rows present in BOTH [sample_v2.xlsx] and [sample_v3_other_sheet.xlsx] but with changed cells)
 _index,Age,Status,Name,_old_source,_new_source
 2,np.int64(26) → np.int64(25),'ok' → <NA>,,sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other
 3,,'ok' → <NA>,'Caroline' → 'Carol',sample_v2.xlsx:Sheet1,sample_v3_other_sheet.xlsx:Other

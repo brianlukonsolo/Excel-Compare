@@ -267,7 +267,7 @@ def generate_sequential_report(inputs: List[str], sheets: List[Optional[str]], i
             result = diff_pair(left, sheet_left, right, sheet_right, index_col, columns_to_check, header_row)
 
             # ADDITIONS
-            rep.write("ADDITIONS (rows present in RIGHT but not LEFT)\n")
+            rep.write(f"#### [ ADDITIONS ] (rows present in [{Path(right).name}] but not [{Path(left).name}])\n")
             if include_additions:
                 if result["added"].empty:
                     rep.write("  None\n\n")
@@ -289,7 +289,7 @@ def generate_sequential_report(inputs: List[str], sheets: List[Optional[str]], i
                 rep.write("  (excluded by config)\n\n")
 
             # REMOVALS
-            rep.write("REMOVALS (rows present in LEFT but not RIGHT)\n")
+            rep.write(f"#### [ REMOVALS ] (rows present in [{Path(left).name}] but not [{Path(right).name}])\n")
             if include_removals:
                 if result["removed"].empty:
                     rep.write("  None\n\n")
@@ -311,7 +311,7 @@ def generate_sequential_report(inputs: List[str], sheets: List[Optional[str]], i
                 rep.write("  (excluded by config)\n\n")
 
             # MODIFIED
-            rep.write("MODIFIED (rows present in BOTH but with changed cells)\n")
+            rep.write(f"#### [ MODIFIED ] (rows present in BOTH [{Path(left).name}] and [{Path(right).name}] but with changed cells)\n")
             if include_mods:
                 if result["modified"].empty:
                     rep.write("  None\n\n")

@@ -1,3 +1,0 @@
-_index,Age,Status,_old_source,_new_source,Name
-2,np.int64(25) → np.int64(26),<NA> → 'ok',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1,
-3,,<NA> → 'ok',sample_v1.xlsx:Data,sample_v2.xlsx:Sheet1,'Carol' → 'Caroline'

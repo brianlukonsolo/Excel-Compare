@@ -30,6 +30,7 @@ DEFAULT_INPUTS = "inputs/sample_v1.xlsx,inputs/sample_v2.xlsx"
 DEFAULT_SHEETS = ""            # comma-separated list of sheets (blank -> first sheet)
 DEFAULT_INDEX_COL = "ID"
 DEFAULT_COLUMNS = ""          # comma-separated list of columns to compare; blank = all
+DEFAULT_COLUMN_HEADER_ROW_INDEX = "0"  # 0-indexed row number where column headers are located
 DEFAULT_OUTPUT_DIR = "outputs"
 DEFAULT_REPORT_FILENAME = "excel_diff_report.txt"
 DEFAULT_EXPORT_CSV = "true"
@@ -49,6 +50,7 @@ INPUTS = _env("INPUTS", DEFAULT_INPUTS)
 SHEETS = _env("SHEETS", DEFAULT_SHEETS)
 INDEX_COL = _env("INDEX_COL", DEFAULT_INDEX_COL)
 COLUMNS = _env("COLUMNS", DEFAULT_COLUMNS)
+COLUMN_HEADER_ROW_INDEX = int(_env("COLUMN_HEADER_ROW_INDEX", DEFAULT_COLUMN_HEADER_ROW_INDEX))
 OUTPUT_DIR = _env("OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
 REPORT_FILENAME = _env("REPORT_FILENAME", DEFAULT_REPORT_FILENAME)
 EXPORT_CSV = _env("EXPORT_CSV", DEFAULT_EXPORT_CSV).lower() in ("1", "true", "yes", "y")
@@ -76,10 +78,15 @@ def _choose_engines_for_suffix(suffix: str) -> List[str]:
         return ["openpyxl", "xlrd"]     # try openpyxl first for modern formats
     return []
 
-def _load_table(path: str, sheet: Optional[str] = None) -> Tuple[pd.DataFrame, str]:
+def _load_table(path: str, sheet: Optional[str] = None, header_row: int = 0) -> Tuple[pd.DataFrame, str]:
     """
     Load a CSV/TSV or Excel file (.xls/.xlsx) and return (DataFrame, used_sheet_name_or_empty_for_csv).
     Tries multiple engines for Excel files (fallback) before giving up.
+    
+    Args:
+        path: File path to load
+        sheet: Sheet name to load (Excel only)
+        header_row: 0-indexed row number where column headers are located (default: 0)
     """
     p = Path(path)
     if not p.exists():
@@ -89,7 +96,7 @@ def _load_table(path: str, sheet: Optional[str] = None) -> Tuple[pd.DataFrame, s
     # CSV / TSV
     if suffix in (".csv", ".tsv"):
         sep = "\t" if suffix == ".tsv" else ","
-        df = pd.read_csv(path, sep=sep)
+        df = pd.read_csv(path, sep=sep, header=header_row)
         return df, ""
 
     # Determine engine order
@@ -107,7 +114,7 @@ def _load_table(path: str, sheet: Optional[str] = None) -> Tuple[pd.DataFrame, s
             used_sheet = sheet if (sheet and sheet in sheet_names) else sheet_names[0]
             if sheet and sheet not in sheet_names:
                 print(f"Warning: sheet '{sheet}' not found in {path}. Using '{used_sheet}' instead.", file=sys.stderr)
-            df = pd.read_excel(path, sheet_name=used_sheet, engine=engine)
+            df = pd.read_excel(path, sheet_name=used_sheet, engine=engine, header=header_row)
             # success
             return df, used_sheet
         except ImportError as ie:
@@ -142,13 +149,14 @@ def _expose_index_column(df: pd.DataFrame, index_name: Optional[str]) -> pd.Data
 # Core diff logic
 # ----------------------------
 def diff_pair(file1: str, sheet1: Optional[str], file2: str, sheet2: Optional[str],
-              index_col: Optional[str], columns_to_check: Optional[List[str]] = None) -> Dict[str, Any]:
+              index_col: Optional[str], columns_to_check: Optional[List[str]] = None,
+              header_row: int = 0) -> Dict[str, Any]:
     """
     Compare left (file1:sheet1) vs right (file2:sheet2).
     Returns dict with keys: 'added','removed','modified','meta'
     """
-    df1, used_sheet1 = _load_table(file1, sheet1)
-    df2, used_sheet2 = _load_table(file2, sheet2)
+    df1, used_sheet1 = _load_table(file1, sheet1, header_row)
+    df2, used_sheet2 = _load_table(file2, sheet2, header_row)
 
     # Apply column selection if provided (keep only columns that exist in each file)
     if columns_to_check:
@@ -223,7 +231,7 @@ def diff_pair(file1: str, sheet1: Optional[str], file2: str, sheet2: Optional[st
 def generate_sequential_report(inputs: List[str], sheets: List[Optional[str]], index_col: Optional[str],
                                columns_to_check: Optional[List[str]], out_dir: Path, report_filename: str,
                                include_additions: bool, include_mods: bool, include_removals: bool,
-                               export_csv: bool, print_terminal: bool) -> None:
+                               export_csv: bool, print_terminal: bool, header_row: int = 0) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     report_path = out_dir / report_filename
 
@@ -256,7 +264,7 @@ def generate_sequential_report(inputs: List[str], sheets: List[Optional[str]], i
                 print(comp_title)
                 print("-"*80)
 
-            result = diff_pair(left, sheet_left, right, sheet_right, index_col, columns_to_check)
+            result = diff_pair(left, sheet_left, right, sheet_right, index_col, columns_to_check, header_row)
 
             # ADDITIONS
             rep.write("ADDITIONS (rows present in RIGHT but not LEFT)\n")
@@ -354,6 +362,7 @@ def cli():
     parser.add_argument("--sheets", "-s", help="Comma-separated list of sheet names (same order), blank means first sheet", default=None)
     parser.add_argument("--index-col", help="Index column name to use as key (optional)", default=None)
     parser.add_argument("--columns", "-c", help="Comma-separated list of column names to compare (optional)", default=None)
+    parser.add_argument("--column-header-row-index", help="0-indexed row number where column headers are located (default: 0)", default=None, type=int)
     parser.add_argument("--output-dir", help="Output directory (overrides OUTPUT_DIR env)", default=None)
     parser.add_argument("--report", help="Report filename (overrides REPORT_FILENAME env)", default=None)
     parser.add_argument("--export-csv", help="Export CSVs (true/false)", default=None)
@@ -369,6 +378,7 @@ def cli():
     sheets_raw = args.sheets or os.getenv("SHEETS") or DEFAULT_SHEETS
     index_col = args.index_col if args.index_col is not None else (os.getenv("INDEX_COL") or DEFAULT_INDEX_COL)
     columns_raw = args.columns or os.getenv("COLUMNS") or DEFAULT_COLUMNS
+    header_row = args.column_header_row_index if args.column_header_row_index is not None else int(os.getenv("COLUMN_HEADER_ROW_INDEX") or DEFAULT_COLUMN_HEADER_ROW_INDEX)
     output_dir = args.output_dir or os.getenv("OUTPUT_DIR") or DEFAULT_OUTPUT_DIR
     report_name = args.report or os.getenv("REPORT_FILENAME") or DEFAULT_REPORT_FILENAME
 
@@ -401,7 +411,7 @@ def cli():
     columns_to_check = [c.strip() for c in columns_raw.split(",") if c.strip()] if columns_raw and columns_raw.strip() else None
 
     generate_sequential_report(inputs, sheets, index_col, columns_to_check, Path(output_dir), report_name,
-                               include_add, include_mod, include_rem, export_csv, print_terminal)
+                               include_add, include_mod, include_rem, export_csv, print_terminal, header_row)
 
 if __name__ == "__main__":
     cli()

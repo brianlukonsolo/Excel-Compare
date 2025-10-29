@@ -74,13 +74,14 @@ def _choose_engine_by_suffix(path: str) -> Optional[str]:
     return None
 
 def _load_table(path: str, sheet: Optional[str] = None) -> Tuple[pd.DataFrame, str]:
-    """
-    Load a table from a file. Returns (DataFrame, actual_sheet_used_or_empty_for_csv).
-    Supports .csv .tsv .xlsx .xls (uses engines per file).
-    """
+    from pathlib import Path
+    import pandas as pd
+    import sys
+
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Input file not found: {path}")
+
     suffix = p.suffix.lower()
 
     # CSV / TSV
@@ -89,50 +90,33 @@ def _load_table(path: str, sheet: Optional[str] = None) -> Tuple[pd.DataFrame, s
         df = pd.read_csv(path, sep=sep)
         return df, ""
 
-    # For Excel choose engine per extension
-    engine = _choose_engine_by_suffix(path)
+    # Excel engines
+    engines_to_try = []
+    if suffix == ".xls":
+        engines_to_try = ["xlrd", "openpyxl"]
+    elif suffix == ".xlsx":
+        engines_to_try = ["openpyxl", "xlrd"]
+    else:
+        raise ValueError(f"Unsupported Excel file extension: {suffix}")
 
-    # read sheet names to find the first if needed
-    try:
-        if engine:
+    last_exception = None
+    for engine in engines_to_try:
+        try:
             with pd.ExcelFile(path, engine=engine) as xls:
                 sheet_names = xls.sheet_names
-        else:
-            with pd.ExcelFile(path) as xls:
-                sheet_names = xls.sheet_names
-        if sheet is None or sheet == "":
-            used_sheet = sheet_names[0]
-            if engine:
-                df = pd.read_excel(path, sheet_name=used_sheet, engine=engine)
-            else:
-                df = pd.read_excel(path, sheet_name=used_sheet)
-            return df, used_sheet
-        else:
-            # try to read requested sheet
-            if sheet in sheet_names:
-                if engine:
-                    df = pd.read_excel(path, sheet_name=sheet, engine=engine)
-                else:
-                    df = pd.read_excel(path, sheet_name=sheet)
-                return df, sheet
-            else:
-                # fallback to first sheet and warn
-                used_sheet = sheet_names[0]
-                print(f"Warning: sheet '{sheet}' not found in {path}. Using first sheet '{used_sheet}'.", file=sys.stderr)
-                if engine:
-                    df = pd.read_excel(path, sheet_name=used_sheet, engine=engine)
-                else:
-                    df = pd.read_excel(path, sheet_name=used_sheet)
-                return df, used_sheet
-    except ImportError as ie:
-        # suggest installation
-        if engine == "openpyxl":
-            raise RuntimeError("Missing dependency 'openpyxl'. Install with: pip install openpyxl") from ie
-        if engine == "xlrd":
-            raise RuntimeError("Missing dependency 'xlrd'. Install with: pip install xlrd") from ie
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Failed to read '{path}': {e}") from e
+            sheet_to_use = sheet if sheet in sheet_names else sheet_names[0]
+            if sheet and sheet not in sheet_names:
+                print(f"Warning: sheet '{sheet}' not found in {path}. Using '{sheet_to_use}' instead.", file=sys.stderr)
+            df = pd.read_excel(path, sheet_name=sheet_to_use, engine=engine)
+            return df, sheet_to_use
+        except ImportError as ie:
+            raise RuntimeError(f"Missing dependency for engine '{engine}': {ie}") from ie
+        except Exception as e:
+            last_exception = e
+            continue  # try next engine
+
+    # If all engines failed
+    raise RuntimeError(f"Failed to read '{path}' with all available engines. Last error: {last_exception}")
 
 # Reusable function that compares two tables and returns dicts of DataFrames
 def diff_pair(file1: str, sheet1: Optional[str], file2: str, sheet2: Optional[str], index_col: Optional[str]) -> Dict[str, pd.DataFrame]:

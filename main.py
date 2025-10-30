@@ -398,7 +398,7 @@ def cli():
 
     inputs = [p.strip() for p in inputs_raw.split(",") if p.strip()]
     if not inputs or len(inputs) < 2:
-        parser.error("At least two input files are required (provide --inputs or set INPUTS in .env).")
+        parser.error("At least two input files are required (provide --inputs or set INPUTS in the .env configuration file).")
 
     if sheets_raw and sheets_raw.strip():
         sheets = [s.strip() if s.strip() else None for s in sheets_raw.split(",")]
